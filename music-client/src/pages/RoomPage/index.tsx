@@ -38,8 +38,6 @@ export default function RoomPage() {
   useEffect(() => {
     fetchRoom()
     fetchQueue()
-    const interval = setInterval(fetchQueue, 5000)
-    return () => clearInterval(interval)
   }, [fetchRoom, fetchQueue])
 
   const handleNext = async () => {

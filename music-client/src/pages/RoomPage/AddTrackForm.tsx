@@ -1,41 +1,27 @@
 import { useState } from 'react'
-import { addTrack, AddTrackPayload } from '../../api/queue'
+import { parseAndAddTrack } from '../../api/media'
 import { useApp } from '../../store/AppContext'
-import { TrackSource } from '../../types'
 import Input from '../../components/Input'
 import Button from '../../components/Button'
-
-const SOURCES: TrackSource[] = ['VK', 'YOUTUBE', 'YANDEX_MUSIC', 'SPOTIFY', 'LOCAL']
 
 interface Props {
   onAdded: () => void
 }
 
-const empty = (): AddTrackPayload => ({
-  name: '',
-  artist: '',
-  durationSec: 0,
-  source: 'LOCAL',
-  streamUrl: '',
-})
-
 export default function AddTrackForm({ onAdded }: Props) {
   const { roomId } = useApp()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<AddTrackPayload>(empty())
+  const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const set = (key: keyof AddTrackPayload, val: string | number) =>
-    setForm(f => ({ ...f, [key]: val }))
-
   const handleSubmit = async () => {
-    if (!roomId) return
+    if (!roomId || !url) return
     setError('')
     setLoading(true)
     try {
-      await addTrack(roomId, form)
-      setForm(empty())
+      await parseAndAddTrack(roomId, url)
+      setUrl('')
       setOpen(false)
       onAdded()
     } catch (e: any) {
@@ -65,31 +51,12 @@ export default function AddTrackForm({ onAdded }: Props) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Input label="Название" placeholder="Song name" value={form.name}
-          onChange={e => set('name', e.target.value)} />
-        <Input label="Исполнитель" placeholder="Artist" value={form.artist}
-          onChange={e => set('artist', e.target.value)} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <Input label="Длительность (сек)" type="number" placeholder="240"
-          value={form.durationSec || ''}
-          onChange={e => set('durationSec', Number(e.target.value))} />
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-zinc-400 uppercase tracking-wider">Источник</label>
-          <select
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500"
-            value={form.source}
-            onChange={e => set('source', e.target.value as TrackSource)}
-          >
-            {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <Input label="Stream URL" placeholder="https://..." value={form.streamUrl || ''}
-        onChange={e => set('streamUrl', e.target.value)} />
+      <Input
+        label="Ссылка на YouTube"
+        placeholder="https://youtube.com/watch?v=..."
+        value={url}
+        onChange={e => setUrl(e.target.value)}
+      />
 
       {error && <p className="text-red-400 text-xs">{error}</p>}
 
