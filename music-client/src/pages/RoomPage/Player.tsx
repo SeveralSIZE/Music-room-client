@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react'
-import { pausePlayback, resumePlayback, stopPlayback, getStreamUrl, startPlayback } from '../../api/media'
+import { useEffect, RefObject } from 'react'
+import { pausePlayback, resumePlayback, stopPlayback, getStreamUrl, getStreamMeta } from '../../api/media'
 import { useApp } from '../../store/AppContext'
 import { TrackDto } from '../../types'
 import Button from '../../components/Button'
@@ -8,6 +8,8 @@ interface Props {
   currentTrack: TrackDto | null
   onNext: () => void
   onPrevious: () => void
+  audioRef: RefObject<HTMLAudioElement>
+  audioUnlocked: boolean
 }
 
 function formatDuration(sec: number): string {
@@ -16,33 +18,25 @@ function formatDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export default function Player({ currentTrack, onNext, onPrevious }: Props) {
+export default function Player({ currentTrack, onNext, onPrevious, audioRef, audioUnlocked }: Props) {
   const { roomId } = useApp()
-  const audioRef = useRef<HTMLAudioElement>(null)
 
   useEffect(() => {
-    if (!roomId || !currentTrack?.streamUrl) return
-    startPlayback(roomId, currentTrack.streamUrl)
-  }, [currentTrack?.id])
+    if (!roomId || !audioUnlocked) return
 
-  useEffect(() => {
-    if (!roomId || !currentTrack?.streamUrl) return
-
-    startPlayback(roomId, currentTrack.streamUrl).then(() => {
-      if (audioRef.current) {
+    const check = async () => {
+      const active = await getStreamMeta(roomId)
+      if (active && audioRef.current && !audioRef.current.src.includes(roomId)) {
         audioRef.current.src = getStreamUrl(roomId)
         audioRef.current.load()
-        audioRef.current.play()
+        audioRef.current.play().catch(() => {})
       }
-    })
-  }, [currentTrack?.id])
-
-  useEffect(() => {
-    if (audioRef.current && roomId) {
-      audioRef.current.src = getStreamUrl(roomId)
-      audioRef.current.load()
     }
-  }, [roomId])
+
+    check()
+    const interval = setInterval(check, 3000)
+    return () => clearInterval(interval)
+  }, [roomId, audioUnlocked])
 
   const handlePause = async () => {
     if (!roomId) return

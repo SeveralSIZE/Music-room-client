@@ -33,7 +33,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', token)
     localStorage.setItem('userId', userId)
     localStorage.setItem('username', username)
-    setState(s => ({ ...s, token, userId, username }))
+    localStorage.removeItem('roomId')
+    setState(s => ({ ...s, token, userId, username, roomId: null, room: null }))
   }
 
   const setRoom = (room: RoomResponse) => {

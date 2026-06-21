@@ -1,5 +1,6 @@
 // Запросы к media-service идут напрямую на порт 8084 (через vite proxy /internal и /stream)
 import { getToken } from './auth'
+import type { TrackDto } from '../types'
 
 function authHeader() {
   return { Authorization: `Bearer ${getToken()}` }
@@ -11,6 +12,11 @@ export async function startPlayback(roomId: string, youtubeUrl: string): Promise
     headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify({ roomId, youtubeUrl }),
   })
+}
+
+export async function getStreamMeta(roomId: string): Promise<boolean> {
+  const res = await fetch(`/api/media/stream/${roomId}/meta`)
+  return res.ok
 }
 
 export async function parseAndAddTrack(roomId: string, youtubeUrl: string): Promise<TrackDto> {

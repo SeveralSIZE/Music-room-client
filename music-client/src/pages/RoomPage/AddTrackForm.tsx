@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { parseAndAddTrack } from '../../api/media'
+import { parseAndAddTrack, startPlayback } from '../../api/media'
 import { useApp } from '../../store/AppContext'
 import Input from '../../components/Input'
 import Button from '../../components/Button'
@@ -20,7 +20,10 @@ export default function AddTrackForm({ onAdded }: Props) {
     setError('')
     setLoading(true)
     try {
-      await parseAndAddTrack(roomId, url)
+      const track = await parseAndAddTrack(roomId, url)
+      if (track.streamUrl) {
+        await startPlayback(roomId, track.streamUrl)
+      }
       setUrl('')
       setOpen(false)
       onAdded()

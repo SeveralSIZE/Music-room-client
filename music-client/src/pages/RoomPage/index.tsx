@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useApp } from '../../store/AppContext'
 import { getRoom } from '../../api/rooms'
 import { getQueue, getCurrentTrack, nextTrack, previousTrack } from '../../api/queue'
@@ -13,6 +13,8 @@ export default function RoomPage() {
   const [queue, setQueue] = useState<QueueDto | null>(null)
   const [currentTrack, setCurrentTrack] = useState<TrackDto | null>(null)
   const [copied, setCopied] = useState(false)
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   const fetchRoom = useCallback(async () => {
     if (!roomId) return
@@ -26,10 +28,8 @@ export default function RoomPage() {
   const fetchQueue = useCallback(async () => {
     if (!roomId) return
     try {
-      const [q, ct] = await Promise.all([
-        getQueue(roomId),
-        getCurrentTrack(roomId),
-      ])
+      const q = await getQueue(roomId).catch(() => null)
+      const ct = await getCurrentTrack(roomId).catch(() => null)
       setQueue(q)
       setCurrentTrack(ct)
     } catch { }
@@ -64,8 +64,34 @@ export default function RoomPage() {
     window.location.reload()
   }
 
+  const unlockAudio = () => {
+    setAudioUnlocked(true)
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {})
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="relative min-h-screen bg-zinc-950 flex flex-col">
+
+      {!audioUnlocked && (
+        <div className="absolute inset-0 bg-zinc-950/90 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-4">
+            <svg className="w-8 h-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <p className="text-zinc-400 text-sm">{room?.name ?? 'Загрузка...'}</p>
+            <button
+              onClick={unlockAudio}
+              className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm px-6 py-3 rounded-lg border border-zinc-700 transition-colors"
+            >
+              Войти в комнату
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-zinc-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <svg className="w-4 h-4 text-zinc-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -111,6 +137,8 @@ export default function RoomPage() {
             currentTrack={currentTrack}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            audioRef={audioRef}
+            audioUnlocked={audioUnlocked}
           />
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg flex flex-col">
