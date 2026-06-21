@@ -21,9 +21,6 @@ export default function AddTrackForm({ onAdded }: Props) {
     setLoading(true)
     try {
       const track = await parseAndAddTrack(roomId, url)
-      if (track.streamUrl) {
-        await startPlayback(roomId, track.streamUrl)
-      }
       setUrl('')
       setOpen(false)
       onAdded()

@@ -34,8 +34,8 @@ export default function Player({ currentTrack, onNext, onPrevious, audioRef, aud
     }
 
     check()
-    const interval = setInterval(check, 3000)
-    return () => clearInterval(interval)
+    //const interval = setInterval(check, 3000)
+    //return () => clearInterval(interval)
   }, [roomId, audioUnlocked])
 
   const handlePause = async () => {

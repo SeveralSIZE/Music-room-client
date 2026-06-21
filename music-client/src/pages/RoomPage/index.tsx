@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { connectWebSocket, subscribeToTrackChanged, subscribeToSessionStarted, disconnectWebSocket } from '../../api/websocket'
 import { useApp } from '../../store/AppContext'
 import { getRoom } from '../../api/rooms'
 import { getQueue, getCurrentTrack, nextTrack, previousTrack } from '../../api/queue'
@@ -6,6 +7,7 @@ import { QueueDto, TrackDto, RoomResponse } from '../../types'
 import Player from './Player'
 import TrackList from './TrackList'
 import AddTrackForm from './AddTrackForm'
+import { getStreamUrl } from '../../api/media'
 
 export default function RoomPage() {
   const { roomId, room: cachedRoom, setRoom, logout } = useApp()
@@ -15,6 +17,27 @@ export default function RoomPage() {
   const [copied, setCopied] = useState(false)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    if (!roomId || !audioUnlocked) return
+
+    connectWebSocket(() => {
+      subscribeToTrackChanged(roomId, (track) => {
+        setCurrentTrack(track)
+      })
+      subscribeToSessionStarted(roomId, () => {
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.src = getStreamUrl(roomId)
+            audioRef.current.load()
+            audioRef.current.play().catch(() => {})
+          }
+        }, 500)
+      })
+    })
+
+    return () => disconnectWebSocket()
+  }, [roomId, audioUnlocked])
 
   const fetchRoom = useCallback(async () => {
     if (!roomId) return
