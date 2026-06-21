@@ -5,6 +5,14 @@ function authHeader() {
   return { Authorization: `Bearer ${getToken()}` }
 }
 
+export async function startPlayback(roomId: string, youtubeUrl: string): Promise<void> {
+  await fetch('/api/media/internal/play', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify({ roomId, youtubeUrl }),
+  })
+}
+
 export async function parseAndAddTrack(roomId: string, youtubeUrl: string): Promise<TrackDto> {
   const res = await fetch(`/api/media/parse?youtubeUrl=${encodeURIComponent(youtubeUrl)}&roomId=${roomId}`, {
     method: 'POST',
@@ -15,29 +23,29 @@ export async function parseAndAddTrack(roomId: string, youtubeUrl: string): Prom
 }
 
 export async function pausePlayback(roomId: string): Promise<void> {
-  await fetch('/internal/pause', {
+  await fetch('/api/media/internal/pause', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify({ roomId }),
   })
 }
 
 export async function resumePlayback(roomId: string): Promise<void> {
-  await fetch('/internal/resume', {
+  await fetch('/api/media/internal/resume', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify({ roomId }),
   })
 }
 
 export async function stopPlayback(roomId: string): Promise<void> {
-  await fetch('/internal/stop', {
+  await fetch('/api/media/internal/stop', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify({ roomId }),
   })
 }
 
 export function getStreamUrl(roomId: string): string {
-  return `/stream/${roomId}`
+  return `/api/media/stream/${roomId}`
 }

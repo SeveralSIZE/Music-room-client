@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { pausePlayback, resumePlayback, stopPlayback, getStreamUrl } from '../../api/media'
+import { pausePlayback, resumePlayback, stopPlayback, getStreamUrl, startPlayback } from '../../api/media'
 import { useApp } from '../../store/AppContext'
 import { TrackDto } from '../../types'
 import Button from '../../components/Button'
@@ -19,6 +19,23 @@ function formatDuration(sec: number): string {
 export default function Player({ currentTrack, onNext, onPrevious }: Props) {
   const { roomId } = useApp()
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    if (!roomId || !currentTrack?.streamUrl) return
+    startPlayback(roomId, currentTrack.streamUrl)
+  }, [currentTrack?.id])
+
+  useEffect(() => {
+    if (!roomId || !currentTrack?.streamUrl) return
+
+    startPlayback(roomId, currentTrack.streamUrl).then(() => {
+      if (audioRef.current) {
+        audioRef.current.src = getStreamUrl(roomId)
+        audioRef.current.load()
+        audioRef.current.play()
+      }
+    })
+  }, [currentTrack?.id])
 
   useEffect(() => {
     if (audioRef.current && roomId) {

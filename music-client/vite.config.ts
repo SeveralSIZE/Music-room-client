@@ -5,20 +5,16 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      '/api/media/stream': {
+                    target: 'http://localhost:8084',
+                    changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/auth': {
         target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/stream': {
-        target: 'http://localhost:8084',
-        changeOrigin: true,
-      },
-      '/internal': {
-        target: 'http://localhost:8084',
         changeOrigin: true,
       },
     },
