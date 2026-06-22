@@ -1,5 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { connectWebSocket, subscribeToTrackChanged, subscribeToSessionStarted, disconnectWebSocket } from '../../api/websocket'
+import {
+  connectWebSocket,
+  subscribeToTrackChanged,
+  subscribeToSessionStarted,
+  subscribeToRoomUpdated,
+  subscribeToQueueChanged,
+  subscribeToPlaybackStatus,
+  disconnectWebSocket
+} from '../../api/websocket'
 import { useApp } from '../../store/AppContext'
 import { getRoom } from '../../api/rooms'
 import { getQueue, getCurrentTrack, nextTrack, previousTrack } from '../../api/queue'
@@ -21,10 +29,39 @@ export default function RoomPage() {
   useEffect(() => {
     if (!roomId || !audioUnlocked) return
 
+    let roomSubscription: any = null
+    let queueSubscription: any = null
+    let playbackSubscription: any = null
+
     connectWebSocket(() => {
+      roomSubscription = subscribeToRoomUpdated(roomId, (roomResponse) => {
+        console.log('Состав комнаты обновлен:', roomResponse.participants)
+        setLocalRoom(roomResponse)
+        setRoom(roomResponse)
+      })
+
+      queueSubscription = subscribeToQueueChanged(roomId, (event) => {
+        console.log('Получены обновленные треки из WS:', event.tracks)
+        setQueue({
+          tracks: event.tracks,
+          currentTrackPosition: 0
+        })
+      })
+
+      playbackSubscription = subscribeToPlaybackStatus(roomId, (status) => {
+          if (!audioRef.current) return
+
+          if (status.paused) {
+            audioRef.current.pause()
+          } else {
+            audioRef.current.play().catch(() => {})
+          }
+      })
+
       subscribeToTrackChanged(roomId, (track) => {
         setCurrentTrack(track)
       })
+
       subscribeToSessionStarted(roomId, () => {
         setTimeout(() => {
           if (audioRef.current) {
@@ -36,8 +73,12 @@ export default function RoomPage() {
       })
     })
 
-    return () => disconnectWebSocket()
-  }, [roomId, audioUnlocked])
+    return () => {
+      if (roomSubscription?.unsubscribe) roomSubscription.unsubscribe()
+      if (queueSubscription?.unsubscribe) queueSubscription.unsubscribe()
+      disconnectWebSocket()
+    }
+  }, [roomId, audioUnlocked, setRoom])
 
   const fetchRoom = useCallback(async () => {
     if (!roomId) return

@@ -30,6 +30,33 @@ export function subscribeToTrackChanged(roomId: string, callback: (track: any) =
   })
 }
 
+export function subscribeToRoomUpdated(roomId: string, callback: (roomResponse: any) => void) {
+  if (!client) return
+
+  return client.subscribe(`/exchange/amq.topic/room.${roomId}.changed`, (message) => {
+    const event = JSON.parse(message.body)
+
+    callback(event.roomResponse)
+  })
+}
+
+export function subscribeToQueueChanged(roomId: string, callback: (event: any) => void) {
+  if (!client) return
+
+  return client.subscribe(`/exchange/amq.topic/room.${roomId}.queue.changed`, (message) => {
+    const event = JSON.parse(message.body)
+    callback(event)
+  })
+}
+
+export function subscribeToPlaybackStatus(roomId: string, callback: (status: { paused: boolean }) => void) {
+  if (!client) return
+  return client.subscribe(`/exchange/amq.topic/room.${roomId}.playback.status`, (message) => {
+    const event = JSON.parse(message.body)
+    callback(event)
+  })
+}
+
 export function disconnectWebSocket() {
   client?.deactivate()
   client = null
