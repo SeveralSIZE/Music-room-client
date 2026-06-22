@@ -25,6 +25,7 @@ export default function RoomPage() {
   const [copied, setCopied] = useState(false)
   const [audioUnlocked, setAudioUnlocked] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const [sessionReady, setSessionReady] = useState(false)
 
   useEffect(() => {
     if (!roomId || !audioUnlocked) return
@@ -59,18 +60,16 @@ export default function RoomPage() {
       })
 
       subscribeToTrackChanged(roomId, (track) => {
+        console.log('Получен новый трек:', track)
         setCurrentTrack(track)
+        setSessionReady(false)   // сбрасываем флаг – ждём новую сессию
       })
 
       subscribeToSessionStarted(roomId, () => {
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.src = getStreamUrl(roomId)
-            audioRef.current.load()
-            audioRef.current.play().catch(() => {})
-          }
-        }, 500)
+        console.log('Сессия создана, можно загружать стрим')
+        setSessionReady(true)    // сессия готова
       })
+
     })
 
     return () => {
@@ -203,6 +202,7 @@ export default function RoomPage() {
             onPrevious={handlePrevious}
             audioRef={audioRef}
             audioUnlocked={audioUnlocked}
+            sessionReady={sessionReady}
           />
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg flex flex-col">

@@ -1,5 +1,5 @@
 import { useEffect, RefObject } from 'react'
-import { pausePlayback, resumePlayback, stopPlayback, getStreamUrl, getStreamMeta } from '../../api/media'
+import { pausePlayback, resumePlayback, stopPlayback, getStreamUrl } from '../../api/media'
 import { useApp } from '../../store/AppContext'
 import { TrackDto } from '../../types'
 import Button from '../../components/Button'
@@ -10,6 +10,7 @@ interface Props {
   onPrevious: () => void
   audioRef: RefObject<HTMLAudioElement>
   audioUnlocked: boolean
+  sessionReady: boolean
 }
 
 function formatDuration(sec: number): string {
@@ -18,25 +19,82 @@ function formatDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export default function Player({ currentTrack, onNext, onPrevious, audioRef, audioUnlocked }: Props) {
+export default function Player({ currentTrack, onNext, onPrevious, audioRef, audioUnlocked, sessionReady }: Props) {
   const { roomId } = useApp()
 
   useEffect(() => {
-    if (!roomId || !audioUnlocked) return
+    const audio = audioRef.current
+    if (!roomId || !currentTrack || !audio || !sessionReady) return
 
-    const check = async () => {
-      const active = await getStreamMeta(roomId)
-      if (active && audioRef.current && !audioRef.current.src.includes(roomId)) {
-        audioRef.current.src = getStreamUrl(roomId)
-        audioRef.current.load()
-        audioRef.current.play().catch(() => {})
+    let isMounted = true
+    let timeoutId: number | undefined
+
+    const loadStream = () => {
+      // Полный сброс
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+      audio.currentTime = 0
+
+      // Новый URL с антикешевым параметром
+      const url = getStreamUrl(roomId) + '?t=' + Date.now()
+      audio.src = url
+      audio.load()
+      audio.currentTime = 0
+
+      const onLoaded = () => {
+        console.log('-=-=-=-=-=-=-=-=-=-=')
+        console.log('currentTime:', audio.currentTime)
+        if (!isMounted) return
+        audio.currentTime = 0
+        audio.play()
+          .then(() => {
+            if (isMounted) audio.currentTime = 0
+          })
+          .catch(() => {})
+        cleanup()
+        console.log('currentTime:', audio.currentTime)
+        console.log('-=-=-=-=-=-=-=-=-=-=')
       }
+
+      const onError = () => {
+        if (!isMounted) return
+        cleanup()
+        timeoutId = setTimeout(loadStream, 500) as unknown as number
+      }
+
+      const cleanup = () => {
+        audio.removeEventListener('loadeddata', onLoaded)
+        audio.removeEventListener('error', onError)
+        if (timeoutId) clearTimeout(timeoutId)
+      }
+
+      audio.addEventListener('loadeddata', onLoaded)
+      audio.addEventListener('error', onError)
+
+      timeoutId = setTimeout(() => {
+        if (isMounted && audio.readyState >= 2) {
+          audio.currentTime = 0
+          audio.play()
+            .then(() => {
+              if (isMounted) audio.currentTime = 0
+            })
+            .catch(() => {})
+          cleanup()
+        }
+      }, 3000) as unknown as number
     }
 
-    check()
-    //const interval = setInterval(check, 3000)
-    //return () => clearInterval(interval)
-  }, [roomId, audioUnlocked])
+    loadStream()
+
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+    }
+  }, [currentTrack?.id, roomId, audioRef, sessionReady])
 
   const handlePause = async () => {
     if (!roomId) return

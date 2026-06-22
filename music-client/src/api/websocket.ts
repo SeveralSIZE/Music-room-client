@@ -12,7 +12,7 @@ export function connectWebSocket(onConnected: () => void) {
     const token = getToken()
     client = new Client({
       //brokerURL: 'ws://localhost:8085/ws/websocket',
-      brokerURL: 'ws://bore.pub:51216/ws/websocket',
+      brokerURL: 'ws://bore.pub:63890/ws/websocket',
       connectHeaders: {
         Authorization: `Bearer ${token}`
       },

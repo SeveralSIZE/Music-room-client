@@ -7,16 +7,16 @@ export default defineConfig({
     allowedHosts: 'all',
     proxy: {
           '/api/media/stream': {
-            target: 'http://bore.pub:4734',  // ← было localhost:8084
+            target: 'http://bore.pub:42536',  // ← было localhost:8084
             changeOrigin: true,
           },
           '/api': {
-            target: 'http://bore.pub:30767',  // ← было localhost:8080
+            target: 'http://bore.pub:30559',  // ← было localhost:8080
             ws: true,
             changeOrigin: true,
           },
           '/auth': {
-            target: 'http://bore.pub:30767',  // ← было localhost:8080
+            target: 'http://bore.pub:30559',  // ← было localhost:8080
             changeOrigin: true,
           },
         },

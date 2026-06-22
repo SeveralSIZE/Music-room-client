@@ -48,9 +48,9 @@ export async function removeTrack(roomId: string, trackId: string): Promise<void
 }
 
 export async function nextTrack(roomId: string): Promise<void> {
-  await fetch(`${BASE}/${roomId}/tracks/next`, { method: 'PATCH', headers: authHeader() })
+  await fetch(`${BASE}/${roomId}/tracks/next`, { method: 'PUT', headers: authHeader() })
 }
 
 export async function previousTrack(roomId: string): Promise<void> {
-  await fetch(`${BASE}/${roomId}/tracks/previous`, { method: 'PATCH', headers: authHeader() })
+  await fetch(`${BASE}/${roomId}/tracks/previous`, { method: 'PUT', headers: authHeader() })
 }
