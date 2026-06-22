@@ -1,18 +1,29 @@
 import { Client } from '@stomp/stompjs'
+import { getToken } from './auth'
 
 let client: Client | null = null
 
+const isSecure = window.location.protocol === 'https:'
+const protocol = isSecure ? 'wss://' : 'ws://'
+
+//export const brokerURL = `${protocol}${window.location.host}/api/ws/websocket`;
+
 export function connectWebSocket(onConnected: () => void) {
-  client = new Client({
-    brokerURL: 'ws://localhost:8085/ws/websocket',
-    onConnect: () => {
-      console.log('STOMP connected')
-      onConnected()
-    },
-    onDisconnect: () => console.log('STOMP disconnected'),
-    onStompError: (frame) => console.error('STOMP error', frame),
-  })
-  client.activate()
+    const token = getToken()
+    client = new Client({
+      //brokerURL: 'ws://localhost:8085/ws/websocket',
+      brokerURL: 'ws://bore.pub:51216/ws/websocket',
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
+      onConnect: () => {
+        console.log('STOMP connected')
+        onConnected()
+      },
+      onDisconnect: () => console.log('STOMP disconnected'),
+      onStompError: (frame) => console.error('STOMP error', frame),
+    })
+    client.activate()
 }
 
 export function subscribeToSessionStarted(roomId: string, callback: () => void) {
@@ -35,7 +46,6 @@ export function subscribeToRoomUpdated(roomId: string, callback: (roomResponse: 
 
   return client.subscribe(`/exchange/amq.topic/room.${roomId}.changed`, (message) => {
     const event = JSON.parse(message.body)
-
     callback(event.roomResponse)
   })
 }
